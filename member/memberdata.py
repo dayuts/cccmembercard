@@ -165,7 +165,7 @@ class CCCMemberData:
         self.data = None        
         self.card_template_file = 'card_letter_template/CCCMembershipCard_front_template.pdf'
         self.letter_template_file = 'card_letter_template/MembershipLetter_template.pdf'
-        self.pdftk_path = '"member/pdftk.exe"'
+        self.pdftk_path = '"pdftk/pdftk.exe"'
         self.member_new_card = None
         
         self.logger = logging.getLogger('card_application')
