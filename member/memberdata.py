@@ -362,16 +362,19 @@ class CCCMemberData:
             self.output_path['member_csv'] = self.output_dir+'/members_requiring_new_card.csv'
             new_card_df = pd.DataFrame(self.member_new_card)
             column_to_print_list = [                    
-                    'First Name', 'Last Name',
+                    'First name', 'Last name',
                     'Email','Spouse First Name', 'Spouse Last Name',
                     'Street Address', 'City', 'State', 'Zip Code', 
                     'Membership ID',
+                    'MembershipLevel',
                     'Renewal date last changed', 
+                    'Profile last updated',
                     'Renewal due',                    
                     'Membership Status',
                     'Last Membership Card Sent Date',                     
-                    'ID'
+                    'User ID'
                     ]
+            
             new_card_df.loc[:, new_card_df.columns.isin(column_to_print_list)].to_csv(self.output_path['member_csv'])
             #pdb.set_trace()
             #return new_card_df
