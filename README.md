@@ -19,6 +19,7 @@ The script is written for Windows Environment.
 No installation program is provided or needed. 
 - Download the source code
 - Modify memberdata.py to provide pdftk path
+- Rename `example-credential.json` to `credential.json` and modify the content to add password and token
 
 # Run
 Run `startgui.py` to start the program
