@@ -159,35 +159,60 @@ def _add_card_sent_date(contact_dict, timestamp):
 class CCCMemberData:
 
     
-    def __init__(self):
+    def __init__(self, path_config_json=None, path_config=None):
         self.api = None
         self.contactsUrl = None
-        self.data = None        
+        self.data = None  
+        self.member_new_card = None
         self.card_template_file = 'card_letter_template/CCCMembershipCard_front_template.pdf'
         self.letter_template_file = 'card_letter_template/MembershipLetter_template.pdf'
-        self.pdftk_path = '"pdftk/pdftk.exe"'
-        self.member_new_card = None
-        
-        self.logger = logging.getLogger('card_application')
-        self.logger.setLevel(logging.DEBUG)
+        self.pdftk_path = '"pdftk/pdftk.exe"'        
+        self.logging_path = 'output/membercard.log'        
+        self.output_base_dir = 'output/'        
         self.timestamp = datetime.now()
+        self.output_dir = self.output_base_dir + '/' + self.timestamp.strftime('%Y-%m-%d_%H_%M_%S');
+        
+        
+        self.update_path(path_config_json=path_config_json, path_config=path_config)
+        
         today_midnight = self.timestamp.replace(hour=0, minute=0, second=0, microsecond=0)
         member_card_resent_date = today_midnight.replace(month=7, day=1)
         if member_card_resent_date >= today_midnight:
             member_card_resent_date = member_card_resent_date - relativedelta.relativedelta(years=1)        
         self.member_card_resent_date = member_card_resent_date
         self.member_card_expiration_date = self.member_card_resent_date + relativedelta.relativedelta(years=1) - relativedelta.relativedelta(days=1) 
-        self.output_dir = 'output/' + self.timestamp.strftime('%Y-%m-%d_%H_%M_%S');
+        
         self.output_path = dict()        
-            
-
-# create file handler which logs even debug messages
-        fh = logging.FileHandler('output/membercard.log')
+        self.logger = logging.getLogger('card_application')
+        self.logger.setLevel(logging.DEBUG)            
+        # create file handler which logs even debug messages
+        fh = logging.FileHandler(self.logging_path)
         fh.setLevel(logging.DEBUG)
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         fh.setFormatter(formatter)
         # add the handlers to the logger
         self.logger.addHandler(fh)
+    def update_path(self, path_config_json=None, path_config=None):
+        """ Update path setting from config file
+        """
+        
+        if (path_config is None) and (path_config_json is not None):        
+            with open(path_config_json, 'r') as file:
+                path_config = json.load(file)
+        if path_config:
+            if 'card_template_file' in path_config.keys():
+                self.card_template_file = path_config['card_template_file']
+            if 'letter_template_file' in path_config.keys():
+                self.letter_template_file = path_config['letter_template_file']
+            if 'pdftk_path' in path_config.keys():
+                self.pdftk_path = path_config['pdftk_path']
+            if 'logging_path' in path_config.keys():
+                self.logging_path = path_config['logging_path']        
+            if 'output_base_dir' in path_config.keys():
+                self.output_base_dir = path_config['output_base_dir']  
+                self.output_dir = self.output_base_dir + '/' + self.timestamp.strftime('%Y-%m-%d_%H_%M_%S');
+            if 'output_dir' in path_config.keys():
+                self.output_dir = path_config['output_dir']  
         
     def initialize_with_credentials(self, credential):
         """ initialize member data with credentials provided
@@ -362,16 +387,19 @@ class CCCMemberData:
             self.output_path['member_csv'] = self.output_dir+'/members_requiring_new_card.csv'
             new_card_df = pd.DataFrame(self.member_new_card)
             column_to_print_list = [                    
-                    'First Name', 'Last Name',
+                    'First name', 'Last name',
                     'Email','Spouse First Name', 'Spouse Last Name',
                     'Street Address', 'City', 'State', 'Zip Code', 
                     'Membership ID',
+                    'MembershipLevel',
                     'Renewal date last changed', 
+                    'Profile last updated',
                     'Renewal due',                    
                     'Membership Status',
                     'Last Membership Card Sent Date',                     
-                    'ID'
+                    'User ID'
                     ]
+            
             new_card_df.loc[:, new_card_df.columns.isin(column_to_print_list)].to_csv(self.output_path['member_csv'])
             #pdb.set_trace()
             #return new_card_df

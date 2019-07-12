@@ -103,19 +103,22 @@ class CCCMemberCardFrame(wx.Frame):
             self.text_total_member.SetLabel("Number of member data records: %d" % len(self.cccmember.data))
             self.cccmember.get_new_card_member_contact()
             self.text_new_member.SetLabel("Number of new members requiring cards: %d" % len(self.cccmember.member_new_card))
-            self.cccmember.write2csv_new_member_card_contact()
-            csv_path = os.path.abspath( self.cccmember.output_path['member_csv'])
-            self.url_member_csv.SetURL('file:///'+csv_path)
-            self.url_member_csv.SetLabel("csv (table) file of info of members requiring new card: Click to View")            
-            self.Layout()            
-            wx.MessageBox("Data loaded from website: %s Records" % len(self.cccmember.data))
+            if self.cccmember.member_new_card:
+                self.cccmember.write2csv_new_member_card_contact()
+                csv_path = os.path.abspath( self.cccmember.output_path['member_csv'])
+                self.url_member_csv.SetURL('file:///'+csv_path)
+                self.url_member_csv.SetLabel("csv (table) file of info of members requiring new card: Click to View")            
+                self.Layout()            
+                wx.MessageBox("Data loaded from website: %s Records" % len(self.cccmember.data))
+            else:                
+                wx.MessageBox("No new card is needed")
         else:            
             wx.MessageBox("Unable to load data from website")
         self.SetStatusText("Follow steps to print card. Click Step 2 to generate Files")
             
     def OnButton_create_letter_and_card_file(self, event):
         self.SetStatusText("Generate files to print.")
-        if self.cccmember.member_new_card is None:
+        if (self.cccmember.member_new_card is None) or (not self.cccmember.member_new_card):
              wx.MessageBox("No new card info is available")
         else:
             self.gauge_file_status.SetRange(len(self.cccmember.member_new_card)*2+5)
@@ -137,10 +140,13 @@ class CCCMemberCardFrame(wx.Frame):
             wx.MessageBox("File generated")
         self.SetStatusText("Follow steps to print card. Double check to makes sure you have the files. Click Step 3 to update the data back to the website")
         
-    def OnButton_update_website(self, event):
-        self.SetStatusText("Update website")
-        #self.cccmember.update_card_sent_info_to_web()
-        wx.MessageBox("Updated Website")        
+    def OnButton_update_website(self, event):        
+        if (self.cccmember.member_new_card is None) or (not self.cccmember.member_new_card):
+            wx.MessageBox("No new card info is available")
+        else:
+            self.SetStatusText("Update website")             
+            self.cccmember.update_card_sent_info_to_web()
+            wx.MessageBox("Updated Website")        
 
     def OnHello(self, event):
         """Say hello to the user."""
