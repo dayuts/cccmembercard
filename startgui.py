@@ -96,25 +96,29 @@ class CCCMemberCardFrame(wx.Frame):
     def OnButton_load_member_list(self, event):
         self.SetStatusText("Loading data from CCC website")
         self.gauge_load_status.inc()
-        self.cccmember.initialize_with_credential_json_file('credential.json')
-        self.gauge_load_status.inc()
-        self.cccmember.load_data(progbar=self.gauge_load_status)        
-        if self.cccmember.data is not None:
-            self.text_total_member.SetLabel("Number of member data records: %d" % len(self.cccmember.data))
-            self.cccmember.get_new_card_member_contact()
-            self.text_new_member.SetLabel("Number of new members requiring cards: %d" % len(self.cccmember.member_new_card))
-            if self.cccmember.member_new_card:
-                self.cccmember.write2csv_new_member_card_contact()
-                csv_path = os.path.abspath( self.cccmember.output_path['member_csv'])
-                self.url_member_csv.SetURL('file:///'+csv_path)
-                self.url_member_csv.SetLabel("csv (table) file of info of members requiring new card: Click to View")            
-                self.Layout()            
-                wx.MessageBox("Data loaded from website: %s Records" % len(self.cccmember.data))
-            else:                
-                wx.MessageBox("No new card is needed")
-        else:            
-            wx.MessageBox("Unable to load data from website")
-        self.SetStatusText("Follow steps to print card. Click Step 2 to generate Files")
+        
+        initialization_flag = self.cccmember.initialize_with_credential_json_file('credential.json')
+        if ~initialization_flag:
+          wx.MessageBox("Unable to intilaize connection to wildapricot. Check error log for detailed information")
+        else:
+          self.gauge_load_status.inc()
+          self.cccmember.load_data(progbar=self.gauge_load_status)        
+          if self.cccmember.data is not None:
+              self.text_total_member.SetLabel("Number of member data records: %d" % len(self.cccmember.data))
+              self.cccmember.get_new_card_member_contact()
+              self.text_new_member.SetLabel("Number of new members requiring cards: %d" % len(self.cccmember.member_new_card))
+              if self.cccmember.member_new_card:
+                  self.cccmember.write2csv_new_member_card_contact()
+                  csv_path = os.path.abspath( self.cccmember.output_path['member_csv'])
+                  self.url_member_csv.SetURL('file:///'+csv_path)
+                  self.url_member_csv.SetLabel("csv (table) file of info of members requiring new card: Click to View")            
+                  self.Layout()            
+                  wx.MessageBox("Data loaded from website: %s Records" % len(self.cccmember.data))
+              else:                
+                  wx.MessageBox("No new card is needed")
+          else:            
+              wx.MessageBox("Unable to load data from website")
+          self.SetStatusText("Follow steps to print card. Click Step 2 to generate Files")
             
     def OnButton_create_letter_and_card_file(self, event):
         self.SetStatusText("Generate files to print.")

@@ -223,11 +223,17 @@ class CCCMemberData:
         self.logger.info('Connect to WildApricot API')
         self.api = WaApi.WaApiClient(credential['client_id'],
                                      credential['client_secret'])                                                                         
-        self.api.authenticate_with_contact_credentials(credential['username'],
-                                                       credential['password'])        
-        accounts = self.api.execute_request("/v2/accounts")
-        account = accounts[0]
-        self.contactsUrl = next(res for res in account.Resources if res.Name == 'Contacts').Url
+        try:
+          self.api.authenticate_with_contact_credentials(credential['username'],
+                                                          credential['password'])        
+        
+          accounts = self.api.execute_request("/v2/accounts")
+          account = accounts[0]
+          self.contactsUrl = next(res for res in account.Resources if res.Name == 'Contacts').Url
+          return True
+        except Exception:
+          self.logger.exception("Unable to initialize connection with wildapricot") 
+          return False
         
     def initialize_with_credential_json_file(self, file_name):
         """ initialize member data with credentials stored in json file
@@ -236,9 +242,10 @@ class CCCMemberData:
             file_name (str): filename of the json file for credential
             
         """     
+        self.logger.info('Load credential from {}'.format(file_name))
         with open(file_name, 'r') as file:
             credentials = json.load(file)        
-        self.initialize_with_credentials(credentials)            
+        return self.initialize_with_credentials(credentials)            
 
     def _get_specific_members_list(self, fields=None):
         if fields is None:
