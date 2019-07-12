@@ -1,6 +1,6 @@
 # Membership Card Printing for CCC
 
-I first wrote this script to help Chinese Community Center, a non for profit to print the membership cards. The CCC website is hosted on www.wildapricot.com. This script pulls membership data from the widlapricot website, extract members that requiring a new card to be print, and produce pdf files of membership cards with member's information.  
+I first wrote this script to help Chinese Community Center, a non for profit to print the membership cards. The CCC website is hosted on www.wildapricot.com. This script pulls membership data from the widlapricot website, extract members for whom a new card is to be printed, and produce pdf files of membership cards with each member's information.  
 
 This program could be conceptually adapted to print membership card or other personalized pdf file for website hosted on www.wildapricot.com
 
@@ -9,11 +9,13 @@ I later added a wxPython based GUI for the script.
 
 # Requirements
 The script requires the following libraries: 
+- fdfgen https://github.com/ccnmtl/fdfgen
 - PDFtk (Server) https://www.pdflabs.com/tools/pdftk-server/
+- wxPython, numpy, pandas among others. See requirements.txt for details
 
 The pdftk.exe is called by the script and its path needs to be provided.
 
-The script is written for Windows Environment. 
+The script is written and tested for Windows 10 Environment. 
 
 # Installation
 No installation program is provided or needed. 
