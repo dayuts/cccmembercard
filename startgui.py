@@ -85,7 +85,9 @@ class CCCMemberCardFrame(wx.Frame):
         self.gauge_file_status = GaugeExt(self, pos=(200,145), range=50)
         
         # add configuration information
-        self.cfg_credential_file_link= wx.StaticText(self, label="credential file location: " +os.path.abspath('credential.json'),pos=(0,40))
+        self.cfg_credential_file_link= adv.HyperlinkCtrl(self, label="credential file location: " +os.path.abspath('credential.json'),
+        url='file://'+os.path.abspath('credential.json'),
+        pos=(0,40))
       
         # and a status bar
         self.CreateStatusBar()
@@ -99,8 +101,7 @@ class CCCMemberCardFrame(wx.Frame):
           label="log file: " + os.path.abspath(self.cccmember.logging_path),
           url="file://" + os.path.abspath(self.cccmember.logging_path),
           pos=(0,310))           
-        #self.output_dir_link.SetURL('file:///#'+os.path.abspath(self.cccmember.output_dir))
-        #self.output_dir_link.SetLabel("Output directory: " + 'file://#'+os.path.abspath(self.cccmember.output_dir))
+
 
     def OnExit(self, event):
         """Close the frame, terminating the application."""
