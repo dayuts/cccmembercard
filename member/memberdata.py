@@ -223,11 +223,17 @@ class CCCMemberData:
         self.logger.info('Connect to WildApricot API')
         self.api = WaApi.WaApiClient(credential['client_id'],
                                      credential['client_secret'])                                                                         
-        self.api.authenticate_with_contact_credentials(credential['username'],
-                                                       credential['password'])        
-        accounts = self.api.execute_request("/v2/accounts")
-        account = accounts[0]
-        self.contactsUrl = next(res for res in account.Resources if res.Name == 'Contacts').Url
+        try:
+          self.api.authenticate_with_contact_credentials(credential['username'],
+                                                          credential['password'])        
+        
+          accounts = self.api.execute_request("/v2/accounts")
+          account = accounts[0]
+          self.contactsUrl = next(res for res in account.Resources if res.Name == 'Contacts').Url
+          return True
+        except Exception:
+          self.logger.exception("Unable to initialize connection with wildapricot") 
+          return False
         
     def initialize_with_credential_json_file(self, file_name):
         """ initialize member data with credentials stored in json file
@@ -236,9 +242,10 @@ class CCCMemberData:
             file_name (str): filename of the json file for credential
             
         """     
+        self.logger.info('Load credential from {}'.format(file_name))
         with open(file_name, 'r') as file:
             credentials = json.load(file)        
-        self.initialize_with_credentials(credentials)            
+        return self.initialize_with_credentials(credentials)            
 
     def _get_specific_members_list(self, fields=None):
         if fields is None:
@@ -373,7 +380,7 @@ class CCCMemberData:
         members_selected_filtered_dict_fmt = {w['Membership ID']:w for w in members_selected_filtered}
         members_selected_filtered_sorted = [w[1] for w in sorted(members_selected_filtered_dict_fmt.items())]        
         self.member_new_card = members_selected_filtered_sorted
-        
+        self.logger.info('Number of members needing new card is {}'.format(len(self.member_new_card)))
 
                
     def write2csv_new_member_card_contact(self):
@@ -424,14 +431,15 @@ class CCCMemberData:
             if progbar is not None: progbar.inc()                                  
             if not os.path.exists(self.output_dir):
                 os.mkdir(self.output_dir)
-            self.logger.info('Generate card pdf')
+           
             self.output_path['card_pdf'] = self.output_dir+'/card_to_print.pdf'
+            self.logger.info('Generate card pdf at {}'.format(self.output_path['card_pdf']))              
             _form_fill_wrapper(card_data, self.card_template_file,  self.output_path['card_pdf'], 
                                self.pdftk_path, self.logger, progbar=progbar)
             self.output_path['letter_pdf'] = self.output_dir+'/letter_to_print.pdf'
-            self.logger.info('Generate letter pdf')
+            self.logger.info('Generate letter pdf at {}'.format(self.output_path['letter_pdf']))
             _form_fill_wrapper(letter_data, self.letter_template_file, self.output_path['letter_pdf'],
-                               self.pdftk_path, self.logger, progbar=progbar)
+            self.pdftk_path, self.logger, progbar=progbar)
     
     def update_card_sent_info_to_web(self):
         """ update card sent info to the web
