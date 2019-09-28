@@ -2,21 +2,15 @@ from member import WaApi
 import urllib.parse
 import json
 import time
-import numpy as np
 import pandas as pd
 
 from fdfgen import forge_fdf
 import os
-import sys
 import tempfile
 from datetime import datetime
 from dateutil import relativedelta
 import subprocess
-import dateutil
-from dateutil import tz
 import logging
-import pandas as pd
-import pdb
 
 
 def _discard_member_with_incomplete_information(contact_dict):
@@ -46,6 +40,11 @@ def _remove_spousename_if_same_as_main(contact_dict):
         output_list.append(y)
     return output_list
 
+def join_str(str_ls, sep=None):
+    """ join a list of strings"""
+    if sep is None:
+        sep = ''
+    return sep.join([w for w in str_ls if w is not None])
 
 def _prepare_card_data(contact_dict, expiration_date):
     data =  []
@@ -61,10 +60,11 @@ def _prepare_card_data(contact_dict, expiration_date):
         #field.append(('MEM_ID'.encode('utf-8'), x["Membership ID"]))
         #field.append(('MEMBER_NAME'.encode('utf-8'), (x['First name']+' ' + x['Last name']).upper()))
         field.append(('MEM_ID', x["Membership ID"]))
-        field.append(('MEMBER_NAME', (x['First name']+' ' + x['Last name']).upper()))
+        field.append(('MEMBER_NAME', join_str([x['First name'], x['Last name']], sep=' ').upper()))
         if 'Spouse First Name' in x:
             #field.append(('SPOUSE_NAME'.encode('utf-8'), (x['Spouse First Name']+' '+x['Spouse Last Name']).upper()))
-            field.append(('SPOUSE_NAME', (x['Spouse First Name']+' '+x['Spouse Last Name']).upper()))
+            #field.append(('SPOUSE_NAME', (x['Spouse First Name']+' '+x['Spouse Last Name']).upper()))
+            field.append(('SPOUSE_NAME', join_str([x['Spouse First Name'], x['Spouse Last Name']], sep=' ').upper()))
         #field.append(('MEM_TYPE'.encode('utf-8'), x['MembershipLevel']))
         field.append(('MEM_TYPE', x['MembershipLevel']))
         field.append(('EXPIRATION', expiration_date.strftime('%Y.%m.%d')))                        
@@ -74,6 +74,9 @@ def _prepare_card_data(contact_dict, expiration_date):
             if not (x['Spouse First Name'] is None or x['Spouse First Name']==''):
                 data.append(field)            
     return(data)
+
+def none2blank(x):
+    return x if x is not None else ''
 
 def _prepare_letter_data(contact_dict):
     data =  []
@@ -87,11 +90,11 @@ def _prepare_letter_data(contact_dict):
         #field.append(('STREET'.encode('utf-8'), x['Street Address'].title()))            
         #field.append(('CITYPAIR'.encode('utf-8'), x['City'].title()+', '+ x['State'].Label+ ' '+x['Zip Code']))
         field.append(('MEM_ID', x["Membership ID"]))
-        field.append(('FIRSTNAME', x['First name'].title()+', ')) 
-        field.append(('EMAIL', x["Email"]))
-        field.append(('FULLNAME', 'To: '+(x['First name']+' '+x['Last name']).title()))
-        field.append(('STREET', x['Street Address'].title()))            
-        field.append(('CITYPAIR', x['City'].title()+', '+ x['State']+ ' '+x['Zip Code']))        
+        field.append(('FIRSTNAME', none2blank(x['First name']).title()+', ')) 
+        field.append(('EMAIL', none2blank(x["Email"])))
+        field.append(('FULLNAME', 'To: '+join_str([x['First name'], x['Last name']], sep=' ').title()))
+        field.append(('STREET', none2blank(x['Street Address']).title()))            
+        field.append(('CITYPAIR', join_str([none2blank(x['City']).title(), ', ', x['State'], ' ', x['Zip Code']])))
         data.append(field)
     return(data)
 
@@ -113,7 +116,7 @@ def _form_fill(fields, pdf_file, temp_folder, count, pdftk_path, logger=None):
     os.remove(filename)    
     
 
-def _form_fill_wrapper(data, pdf_file, final_output_file, pdftk_path, logger=None, progbar=None):
+def _form_fill_wrapper(data, pdf_file, final_output_file, pdftk_path, logger=None, progbar=None, status_update_fun=None):
     temp_folder = tempfile.mkdtemp()
     count = 0
     for xrecord in data:         
@@ -122,6 +125,7 @@ def _form_fill_wrapper(data, pdf_file, final_output_file, pdftk_path, logger=Non
         count = count+1        
         
     cmd = '{0} {1}/*.pdf cat output {2}'.format(pdftk_path, temp_folder, final_output_file)
+    if status_update_fun is not None: status_update_fun("Combining individual pdfs files into one file. This might take a long time.")            
     cmd_status = subprocess.call(cmd, shell=True)      
     if progbar is not None: progbar.inc()
     if logger:
@@ -413,9 +417,12 @@ class CCCMemberData:
             #new_card_df.to_csv(self.output_path['member_csv'])
             
         
-            
+    def estimate_number_of_new_cards(self):    
+        return sum([(1 if 'Spouse First Name' not in x else (1 if x['Spouse First Name'] is None or x['Spouse First Name']=='' else 2)) for x in self.member_new_card])            
+    def estimate_number_of_new_letters(self):    
+        return len(self.member_new_card)
     
-    def generate_file_to_print(self, progbar=None):        
+    def generate_file_to_print(self, progbar=None, status_update_fun=None):        
         """ Generate card and letter pdf file
         
         Args:
@@ -425,21 +432,27 @@ class CCCMemberData:
         self.logger.info('Prepare card data')
         if self.member_new_card is None:
             self.logger.error('A list of new member card info is not available yet. Can not generate file to print.')
-        else:                        
+        else:         
+            if status_update_fun is not None: status_update_fun("Prepare data for file generation")               
             card_data = _prepare_card_data(self.member_new_card, expiration_date=self.member_card_expiration_date)
             letter_data = _prepare_letter_data(self.member_new_card)
-            if progbar is not None: progbar.inc()                                  
+            if progbar is not None: progbar.inc()                   
+            if status_update_fun is not None: status_update_fun("Create output directory")               
             if not os.path.exists(self.output_dir):
                 os.mkdir(self.output_dir)
            
             self.output_path['card_pdf'] = self.output_dir+'/card_to_print.pdf'
             self.logger.info('Generate card pdf at {}'.format(self.output_path['card_pdf']))              
+            if status_update_fun is not None: status_update_fun("Generate individual card pdf for each member")            
+            
             _form_fill_wrapper(card_data, self.card_template_file,  self.output_path['card_pdf'], 
-                               self.pdftk_path, self.logger, progbar=progbar)
+                               self.pdftk_path, self.logger, progbar=progbar, status_update_fun=status_update_fun)
             self.output_path['letter_pdf'] = self.output_dir+'/letter_to_print.pdf'
             self.logger.info('Generate letter pdf at {}'.format(self.output_path['letter_pdf']))
+            if status_update_fun is not None: status_update_fun("Generate individual letter pdf for each member")            
+            
             _form_fill_wrapper(letter_data, self.letter_template_file, self.output_path['letter_pdf'],
-            self.pdftk_path, self.logger, progbar=progbar)
+            self.pdftk_path, self.logger, progbar=progbar, status_update_fun=status_update_fun)
     
     def update_card_sent_info_to_web(self):
         """ update card sent info to the web
