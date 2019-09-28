@@ -75,6 +75,9 @@ def _prepare_card_data(contact_dict, expiration_date):
                 data.append(field)            
     return(data)
 
+def none2blank(x):
+    return x if x is not None else ''
+
 def _prepare_letter_data(contact_dict):
     data =  []
     for x in contact_dict:
@@ -87,11 +90,11 @@ def _prepare_letter_data(contact_dict):
         #field.append(('STREET'.encode('utf-8'), x['Street Address'].title()))            
         #field.append(('CITYPAIR'.encode('utf-8'), x['City'].title()+', '+ x['State'].Label+ ' '+x['Zip Code']))
         field.append(('MEM_ID', x["Membership ID"]))
-        field.append(('FIRSTNAME', x['First name'].title()+', ')) 
-        field.append(('EMAIL', x["Email"]))
+        field.append(('FIRSTNAME', none2blank(x['First name']).title()+', ')) 
+        field.append(('EMAIL', none2blank(x["Email"])))
         field.append(('FULLNAME', 'To: '+join_str([x['First name'], x['Last name']], sep=' ').title()))
-        field.append(('STREET', x['Street Address'].title()))            
-        field.append(('CITYPAIR', join_str([x['City'].title(), ', ', x['State'], ' ', x['Zip Code']])))        
+        field.append(('STREET', none2blank(x['Street Address']).title()))            
+        field.append(('CITYPAIR', join_str([none2blank(x['City']).title(), ', ', x['State'], ' ', x['Zip Code']])))
         data.append(field)
     return(data)
 
